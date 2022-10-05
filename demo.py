@@ -4,16 +4,15 @@ import torch
 from utils import get_dataset, get_net, get_strategy
 from pprint import pprint
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=1, help="random seed")
     parser.add_argument('--n_init_labeled', type=int, default=10000, help="number of init labeled samples")
     parser.add_argument('--n_query', type=int, default=1000, help="number of queries per round")
     parser.add_argument('--n_round', type=int, default=10, help="number of rounds")
-    parser.add_argument('--dataset_name', type=str, default="CIFAR10",
+    parser.add_argument('--dataset_name', type=str, default="MNIST",
                         choices=["MNIST", "FashionMNIST", "SVHN", "CIFAR10"], help="dataset")
-    parser.add_argument('--strategy_name', type=str, default="RandomSampling",
+    parser.add_argument('--strategy_name', type=str, default="MarginSampling",
                         choices=["RandomSampling",
                                  "LeastConfidence",
                                  "MarginSampling",
@@ -26,9 +25,11 @@ if __name__ == '__main__':
                                  "BALDDropout",
                                  "AdversarialBIM",
                                  "AdversarialDeepFool"], help="query strategy")
+
+    #attack
+    parser.add_argument('--target_num', type=int, default=100, help="number of target samples")
     args = parser.parse_args()
     print(vars(args))
-    print()
 
     # fix random seed
     np.random.seed(args.seed)
@@ -41,17 +42,17 @@ if __name__ == '__main__':
 
     dataset = get_dataset(args.dataset_name)  # load dataset
     net = get_net(args.dataset_name, device)  # load network
-    strategy = get_strategy(args.strategy_name)(dataset, net)  # load strategy
+    strategy = get_strategy(args.strategy_name)(dataset, net, args.n_query)  # load strategy
 
     # start experiment
     dataset.initialize_labels(args.n_init_labeled)
     print(f"number of labeled pool: {args.n_init_labeled}")
     print(f"number of unlabeled pool: {dataset.n_pool - args.n_init_labeled}")
     print(f"number of testing pool: {dataset.n_test}")
-
     # round 0 accuracy
     print("Round 0")
-    strategy.train()
+    target_samples = []
+    strategy.train(target_samples)
     preds = strategy.predict(dataset.get_test_data())
     print(f"Round 0 testing accuracy: {dataset.cal_test_acc(preds)}")
 
@@ -59,11 +60,11 @@ if __name__ == '__main__':
         print(f"Round {rd}")
 
         # query
-        query_idxs = strategy.query(args.n_query)
-
+        query_idxs = strategy.query()
+        target_idxs = strategy.queryTargetSample(args.target_num)
         # update labels
         strategy.update(query_idxs)
-        strategy.train()
+        strategy.train(target_idxs)
 
         # calculate accuracy
         preds = strategy.predict(dataset.get_test_data())

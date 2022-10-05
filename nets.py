@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import utils
 
 class Net:
     def __init__(self, net, params, device):
@@ -12,21 +13,30 @@ class Net:
         self.params = params
         self.device = device
         
-    def train(self, data):
-        n_epoch = self.params['n_epoch']
+    def train(self, data, after_index):
+        # n_epoch = self.params['n_epoch']
+        n_epoch = 1
         self.clf = self.net().to(self.device)
         self.clf.train()
         optimizer = optim.SGD(self.clf.parameters(), **self.params['optimizer_args'])
-
         loader = DataLoader(data, shuffle=True, **self.params['train_args'])
         for epoch in tqdm(range(1, n_epoch+1), ncols=100):
             for batch_idx, (x, y, idxs) in enumerate(loader):
                 x, y = x.to(self.device), y.to(self.device)
+                if(np.where(np.in1d(idxs, after_index))[0].size != 0):
+                    #     import trigger attack
+                    for j in np.where(np.in1d(idxs, after_index))[0]:
+                        x[j, :, [0, 0, 1, 1], [0, 1, 0, 1]] = 1
+                # utils.show_img(x)
                 optimizer.zero_grad()
                 out, e1 = self.clf(x)
                 loss = F.cross_entropy(out, y)
                 loss.backward()
                 optimizer.step()
+                if batch_idx % 10 == 0:
+                    print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                        epoch, batch_idx * len(x), len(loader.dataset),
+                               100. * batch_idx / len(loader), loss.item()))
 
     def predict(self, data):
         self.clf.eval()

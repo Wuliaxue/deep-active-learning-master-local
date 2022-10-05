@@ -21,14 +21,21 @@ class Data:
         np.random.shuffle(tmp_idxs)
         self.labeled_idxs[tmp_idxs[:num]] = True
     
-    def get_labeled_data(self):
+    def get_labeled_data(self, target_idxs):
         labeled_idxs = np.arange(self.n_pool)[self.labeled_idxs]
-        return labeled_idxs, self.handler(self.X_train[labeled_idxs], self.Y_train[labeled_idxs])
+        after_index = np.where(np.in1d(labeled_idxs, target_idxs))[0]
+        return labeled_idxs, self.handler(self.X_train[labeled_idxs], self.Y_train[labeled_idxs]), after_index
+
+    def get_labeled_data_by_index(self, target_idxs):
+        return self.handler(self.X_train[target_idxs], self.Y_train[target_idxs])
     
     def get_unlabeled_data(self):
         unlabeled_idxs = np.arange(self.n_pool)[~self.labeled_idxs]
         return unlabeled_idxs, self.handler(self.X_train[unlabeled_idxs], self.Y_train[unlabeled_idxs])
-    
+
+    def get_unlabeled_data_by_index(self, unlabeled_idxs):
+        return self.handler(self.X_train[unlabeled_idxs], self.Y_train[unlabeled_idxs])
+
     def get_train_data(self):
         return self.labeled_idxs.copy(), self.handler(self.X_train, self.Y_train)
         

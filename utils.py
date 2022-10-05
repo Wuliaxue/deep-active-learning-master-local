@@ -1,3 +1,5 @@
+import torchvision
+from matplotlib import pyplot as plt
 from torchvision import transforms
 from handlers import MNIST_Handler, SVHN_Handler, CIFAR10_Handler
 from data import get_MNIST, get_FashionMNIST, get_SVHN, get_CIFAR10
@@ -6,6 +8,7 @@ from query_strategies import RandomSampling, LeastConfidence, MarginSampling, En
                              LeastConfidenceDropout, MarginSamplingDropout, EntropySamplingDropout, \
                              KMeansSampling, KCenterGreedy, BALDDropout, \
                              AdversarialBIM, AdversarialDeepFool
+import numpy as np
 
 params = {'MNIST':
               {'n_epoch': 10, 
@@ -28,6 +31,14 @@ params = {'MNIST':
                'test_args':{'batch_size': 1000, 'num_workers': 1},
                'optimizer_args':{'lr': 0.05, 'momentum': 0.3}}
           }
+
+def show_img(img):
+    grid = torchvision.utils.make_grid(img, nrow=10)
+    plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
+    plt.show()
+
+def show_img_by_index(index):
+    pass
 
 def get_handler(name):
     if name == 'MNIST':
@@ -93,7 +104,7 @@ def get_strategy(name):
         return AdversarialDeepFool
     else:
         raise NotImplementedError
-    
+
 # albl_list = [MarginSampling(X_tr, Y_tr, idxs_lb, net, handler, args),
 #              KMeansSampling(X_tr, Y_tr, idxs_lb, net, handler, args)]
 # strategy = ActiveLearningByLearning(X_tr, Y_tr, idxs_lb, net, handler, args, strategy_list=albl_list, delta=0.1)

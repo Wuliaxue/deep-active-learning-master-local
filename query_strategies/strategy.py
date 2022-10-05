@@ -1,9 +1,9 @@
 
 class Strategy:
-    def __init__(self, dataset, net):
+    def __init__(self, dataset, net, n):
         self.dataset = dataset
         self.net = net
-
+        self.n = n
     def query(self, n):
         pass
 
@@ -12,9 +12,9 @@ class Strategy:
         if neg_idxs:
             self.dataset.labeled_idxs[neg_idxs] = False
 
-    def train(self):
-        labeled_idxs, labeled_data = self.dataset.get_labeled_data()
-        self.net.train(labeled_data)
+    def train(self, target_idxs):
+        labeled_idxs, labeled_data, after_index = self.dataset.get_labeled_data(target_idxs)
+        self.net.train(labeled_data, after_index)
 
     def predict(self, data):
         preds = self.net.predict(data)
