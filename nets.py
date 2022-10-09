@@ -3,9 +3,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import utils
+from tensorboardX import SummaryWriter
 
 class Net:
     def __init__(self, net, params, device):
@@ -13,20 +15,24 @@ class Net:
         self.params = params
         self.device = device
         
-    def train(self, data, after_index):
+    def train(self, data, after_index, pattern):
         # n_epoch = self.params['n_epoch']
-        n_epoch = 1
+        n_epoch = 10
         self.clf = self.net().to(self.device)
         self.clf.train()
         optimizer = optim.SGD(self.clf.parameters(), **self.params['optimizer_args'])
         loader = DataLoader(data, shuffle=True, **self.params['train_args'])
+        train_loss = []
+        xlabel = []
+        print(len(after_index))
         for epoch in tqdm(range(1, n_epoch+1), ncols=100):
             for batch_idx, (x, y, idxs) in enumerate(loader):
                 x, y = x.to(self.device), y.to(self.device)
                 if(np.where(np.in1d(idxs, after_index))[0].size != 0):
                     #     import trigger attack
+                    print(np.where(np.in1d(idxs, after_index))[0])
                     for j in np.where(np.in1d(idxs, after_index))[0]:
-                        x[j, :, [0, 0, 1, 1], [0, 1, 0, 1]] = 1
+                        x[j, :, :, :] = x[j, :, :, :] + pattern
                 # utils.show_img(x)
                 optimizer.zero_grad()
                 out, e1 = self.clf(x)
@@ -37,6 +43,12 @@ class Net:
                     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                         epoch, batch_idx * len(x), len(loader.dataset),
                                100. * batch_idx / len(loader), loss.item()))
+                xlabel.append(epoch * len(loader) + batch_idx)
+                train_loss.append(loss.item())
+        plt.ion()
+        plt.plot(xlabel, train_loss, '-')
+        plt.show()
+        plt.pause(3)
 
     def predict(self, data):
         self.clf.eval()
@@ -61,6 +73,23 @@ class Net:
                 prob = F.softmax(out, dim=1)
                 probs[idxs] = prob.cpu()
         return probs
+
+    def predict_chosen_prob(self, chonseSample, rd, datasetname):
+        self.clf.eval()
+        if(rd == 1):
+            if datasetname == 'MNIST':
+                chonseSample.X = torch.unsqueeze(chonseSample.X, dim=0)
+                chonseSample.Y = torch.unsqueeze(chonseSample.Y, dim=0)
+            elif datasetname =='CIFAR10':
+                chonseSample.X = chonseSample.X[np.newaxis, :, :]
+                chonseSample.Y = torch.unsqueeze(chonseSample.Y, dim=0)
+        loader = DataLoader(chonseSample, shuffle=False, **self.params['test_args'])
+        with torch.no_grad():
+            for x, y, idxs in loader:
+                x, y = x.to(self.device), y.to(self.device)
+                out, e1 = self.clf(x)
+                prob = F.softmax(out, dim=1)
+        return prob
     
     def predict_prob_dropout(self, data, n_drop=10):
         self.clf.train()

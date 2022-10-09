@@ -14,7 +14,7 @@ class Data:
         self.n_test = len(X_test)
         
         self.labeled_idxs = np.zeros(self.n_pool, dtype=bool)
-        
+        self.after_index = []
     def initialize_labels(self, num):
         # generate initial labeled pool
         tmp_idxs = np.arange(self.n_pool)
@@ -24,7 +24,9 @@ class Data:
     def get_labeled_data(self, target_idxs):
         labeled_idxs = np.arange(self.n_pool)[self.labeled_idxs]
         after_index = np.where(np.in1d(labeled_idxs, target_idxs))[0]
-        return labeled_idxs, self.handler(self.X_train[labeled_idxs], self.Y_train[labeled_idxs]), after_index
+        for i in after_index:
+            self.after_index.append(i)
+        return labeled_idxs, self.handler(self.X_train[labeled_idxs], self.Y_train[labeled_idxs]), self.after_index
 
     def get_labeled_data_by_index(self, target_idxs):
         return self.handler(self.X_train[target_idxs], self.Y_train[target_idxs])
