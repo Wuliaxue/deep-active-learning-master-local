@@ -12,9 +12,9 @@ class Strategy:
         if neg_idxs:
             self.dataset.labeled_idxs[neg_idxs] = False
 
-    def train(self, target_idxs, pattern):
+    def train(self, target_idxs, pattern, i_round, chosenSample_prob):
         labeled_idxs, labeled_data, after_index = self.dataset.get_labeled_data(target_idxs)
-        self.net.train(labeled_data, after_index, pattern)
+        self.net.train(labeled_data, after_index, pattern, i_round, chosenSample_prob)
 
     def predict(self, data):
         preds = self.net.predict(data)

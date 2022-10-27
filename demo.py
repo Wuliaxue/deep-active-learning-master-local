@@ -3,13 +3,13 @@ import numpy as np
 import torch
 from utils import get_dataset, get_net, get_strategy
 from pprint import pprint
-from tensorboardX import SummaryWriter
+import time
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=2, help="random seed")
-    parser.add_argument('--n_init_labeled', type=int, default=3000, help="number of init labeled samples")
-    parser.add_argument('--n_query', type=int, default=1000, help="number of queries per round")
+    parser.add_argument('--n_init_labeled', type=int, default=100, help="number of init labeled samples")
+    parser.add_argument('--n_query', type=int, default=2000, help="number of queries per round")
     parser.add_argument('--n_round', type=int, default=10, help="number of rounds")
     parser.add_argument('--dataset_name', type=str, default="MNIST",
                         choices=["MNIST", "FashionMNIST", "SVHN", "CIFAR10"], help="dataset")
@@ -54,20 +54,24 @@ if __name__ == '__main__':
     # round 0 accuracy
     print("Round 0")
     target_samples = []
-    strategy.train(target_samples, pattern)
+    rd = 0
+    strategy.train(target_samples, pattern, rd, chosenSample_prob=[])
     preds = strategy.predict(dataset.get_test_data())
     print(f"Round 0 testing accuracy: {dataset.cal_test_acc(preds)}")
-
+    start = time.perf_counter()
     for rd in range(1, args.n_round + 1):
         print(f"Round {rd}")
 
         # query
         query_idxs = strategy.query()
-        target_idxs = strategy.queryTargetSample(args.target_num, rd, args.n_round, args.dataset_name)
+        target_idxs, chosenSample_prob = strategy.queryTargetSample(args.target_num, rd, args.n_round, args.dataset_name)
+
         # update labels
         strategy.update(query_idxs)
-        strategy.train(target_idxs, pattern)
+        strategy.train(target_idxs, pattern, rd, chosenSample_prob)
 
         # calculate accuracy
         preds = strategy.predict(dataset.get_test_data())
         print(f"Round {rd} testing accuracy: {dataset.cal_test_acc(preds)}")
+    end = time.perf_counter()
+    print(round(end - start) / 3600, 'h')

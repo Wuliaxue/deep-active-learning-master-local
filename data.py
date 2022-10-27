@@ -24,8 +24,7 @@ class Data:
     def get_labeled_data(self, target_idxs):
         labeled_idxs = np.arange(self.n_pool)[self.labeled_idxs]
         after_index = np.where(np.in1d(labeled_idxs, target_idxs))[0]
-        for i in after_index:
-            self.after_index.append(i)
+        self.after_index.append(after_index)
         return labeled_idxs, self.handler(self.X_train[labeled_idxs], self.Y_train[labeled_idxs]), self.after_index
 
     def get_labeled_data_by_index(self, target_idxs):

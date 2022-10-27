@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-
+import utils
 from .strategy import Strategy
 
 class MarginSampling(Strategy):
@@ -26,10 +26,16 @@ class MarginSampling(Strategy):
         # print(self.chosenSample.X)
         self.chosenSample_prob = self.predice_chosen_prob(self.chosenSample, rd, datasetname)
         print(self.chosenSample_prob)
-        temp = torch.pairwise_distance(probs, self.chosenSample_prob)
-        temp_sorted, idxs = temp.sort()
-        if rd == n_round:
-            temp_sorted, idxs = temp.sort(descending=True)
-        return self.querySamples_idxs[idxs[:target_num]]
+        # temp = torch.pairwise_distance(probs, self.chosenSample_prob)
+        # if rd == n_round:
+        #     temp_sorted, idxs = temp.sort(descending=True)
+        # else:
+        #     temp_sorted, idxs = temp.sort()
+        # return self.querySamples_idxs[idxs[:target_num]]
+        idxs = np.where(torch.max(probs, 1)[1].cpu() == torch.max(self.chosenSample_prob, 1)[1].cpu())
+        if rd  >= 9:
+            idxs = np.where(torch.max(probs, 1)[1] == torch.max(self.chosenSample_prob, 1)[1] + 1)
+        return self.querySamples_idxs[idxs], self.chosenSample_prob
+
 
 
